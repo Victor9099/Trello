@@ -4,7 +4,7 @@ import viteSvgr from 'vite-plugin-svgr'
 // https://vitejs.dev/config/
 export default defineConfig({
   plugins: [react(),
-    viteSvgr()
+    viteSvgr() //Fix file icon svg
   ],
   // base: './'
   resolve: {

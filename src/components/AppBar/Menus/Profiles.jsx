@@ -3,9 +3,7 @@ import React from 'react'
 import Menu from '@mui/material/Menu'
 import MenuItem from '@mui/material/MenuItem'
 import Divider from '@mui/material/Divider'
-
 import ListItemIcon from '@mui/material/ListItemIcon'
-
 import Avatar from '@mui/material/Avatar'
 import PersonAdd from '@mui/icons-material/PersonAdd'
 import Settings from '@mui/icons-material/Settings'
@@ -25,7 +23,7 @@ function Profiles() {
         <IconButton
           onClick={handleClick}
           size="small"
-          sx={{ padding: 0}}
+          sx={{ padding: 0 }}
           aria-controls={open ? 'account-menu' : undefined}
           aria-haspopup="true"
           aria-expanded={open ? 'true' : undefined}
@@ -46,10 +44,10 @@ function Profiles() {
         }}
       >
         <MenuItem onClick={handleClose}>
-          <Avatar sx ={{ width: 28, height: 28, mr:2 }}/> Profile
+          <Avatar sx={{ width: 28, height: 28, mr: 2 }} /> Profile
         </MenuItem>
         <MenuItem onClick={handleClose}>
-          <Avatar sx ={{ width: 28, height: 28, mr:2 }}/> My account
+          <Avatar sx={{ width: 28, height: 28, mr: 2 }} /> My account
         </MenuItem>
         <Divider />
         <MenuItem onClick={handleClose}>
