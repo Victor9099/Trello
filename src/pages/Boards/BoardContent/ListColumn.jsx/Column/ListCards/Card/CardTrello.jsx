@@ -23,7 +23,8 @@ function CardTrello({ cardT }) {
     touchAction: 'none', // Fix loi
     transform: CSS.Translate.toString(transform),
     transition,
-    opacity: isDragging ? 0.5 : undefined
+    opacity: isDragging ? 0.5 : undefined,
+    border: isDragging ? '1px solid #2ecc71' : undefined
   }
   const shouldShowCardActions = () => {
     return (
