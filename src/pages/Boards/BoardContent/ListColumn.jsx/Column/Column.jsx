@@ -16,8 +16,10 @@ import DeleteForeverIcon from '@mui/icons-material/DeleteForever'
 import AddCardIcon from '@mui/icons-material/AddCard'
 import DragHandleIcon from '@mui/icons-material/DragHandle'
 import ListCards from './ListCards/ListCards'
-
-function Column() {
+import MapOrder from '~/ulti/MapOrder'
+import { useSortable } from '@dnd-kit/sortable'
+import { CSS } from '@dnd-kit/utilities'
+function Column({ column }) {
   const [anchorEl, setAnchorEl] = React.useState(null)
   const open = Boolean(anchorEl)
   const handleClick = (event) => {
@@ -26,8 +28,26 @@ function Column() {
   const handleClose = () => {
     setAnchorEl(null)
   }
+
+  // Sap xep Card
+
+  const OrderedCards = MapOrder(column?.cards, column?.cardOrderIds, '_id')
+
+  //Keo tha sortable
+  const { attributes, listeners, setNodeRef, transform, transition } =
+    useSortable({ id: column._id, data: {...column} })
+
+  const dndKitColumnStyle = {
+    touchAction: 'none', // Fix loi
+    transform: CSS.Translate.toString(transform),
+    transition
+  }
   return (
     <Box
+      ref={setNodeRef}
+      style={dndKitColumnStyle}
+      {...attributes}
+      {...listeners}
       sx={{
         minWidth: '300px',
         maxWidth: '300px',
@@ -65,7 +85,7 @@ function Column() {
             fontSize: '1rem'
           }}
         >
-          Column Title
+          {column?.title}
         </Typography>
         <Box>
           <Tooltip title="More Option">
@@ -129,7 +149,7 @@ function Column() {
         </Box>
       </Box>
       {/* Box Column Body */}
-      <ListCards />
+      <ListCards cards={OrderedCards} />
       {/* Box Column Footer */}
       <Box
         sx={{
