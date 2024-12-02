@@ -20,7 +20,8 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { arrayMove } from '@dnd-kit/sortable'
 import Column from './ListColumn.jsx/Column/Column'
 import CardTrello from './ListColumn.jsx/Column/ListCards/Card/CardTrello'
-import { cloneDeep, filter, over } from 'lodash'
+import { cloneDeep, filter, isEmpty, over } from 'lodash'
+import { generatePlaceholderCard } from '~/ulti/formatter'
 const ACTIVE_DRAG_ITEM_TYPE = {
   COLUMN: 'ACTIVE_DRAG_ITEM_TYPE_COLUMN',
   CARD: 'ACTIVE_DRAG_ITEM_TYPE_CARD'
@@ -88,6 +89,10 @@ function BoardContent({ board }) {
         nextActiveColumn.cards = nextActiveColumn.cards.filter(
           (card) => card._id !== activeDraggingCardId
         )
+        //them placeholder neu mang rong
+        if (isEmpty(nextActiveColumn.cards)) {
+          nextActiveColumn.cards = [generatePlaceholderCard(nextActiveColumn)]
+        }
         // cap nhat lai
         nextActiveColumn.cardOrderIds = nextActiveColumn.cards.map(
           (card) => card._id
@@ -108,6 +113,8 @@ function BoardContent({ board }) {
           0,
           rebuild_activeDraggingCardData
         )
+        //xoa placeholdercard neu no dang ton tai
+        nextOverColumn.cards = nextOverColumn.cards.filter(card => !card.FE_PlaceholderCard)
         // cap nhat
         nextOverColumn.cardOrderIds = nextOverColumn.cards.map(
           (card) => card._id
@@ -230,28 +237,31 @@ function BoardContent({ board }) {
     if (activeDragItemType === ACTIVE_DRAG_ITEM_TYPE.COLUMN) {
       return closestCorners({ ...args })
     }
+
     //Tim diem giao nhau giua cac diem voi con tro
     const pointerIntersection = pointerWithin(args)
-    const intersections = pointerIntersection.length > 0 ?
-      pointerIntersection : rectIntersection (args)
+    if (!pointerIntersection?.length) return
+    // thuat toan phat hien va cham
+    // const intersections = pointerIntersection.length > 0 ?
+    //   pointerIntersection : rectIntersection (args)
 
     //Tim overId dau tien trong sections dau tien
-    let overId = getFirstCollision(intersections, 'id')
+    let overId = getFirstCollision(pointerIntersection, 'id')
     if (overId) {
       const checkColumn = orderedColumnsState.find(column => column._id === overId)
       if (checkColumn) {
         overId = closestCenter({
           ...args,
           droppableContainers: args.droppableContainers.filter(
-            container => {return (container.id !== overId) && 
-              (checkColumn?.cardOrderIds?.includes(container.id))} 
+            container => {return (container.id !== overId) &&
+              (checkColumn?.cardOrderIds?.includes(container.id))}
           )
         })[0]?.id
       }
       lastOverId.current = overId
       return [{ id: overId }]
     }
-    return lastOverId.current ? [{ id: lastOverId.current}] : []
+    return lastOverId.current ? [{ id: lastOverId.current }] : []
   }, [activeDragItemType, orderedColumnsState])
   //Tim 1 column theo card Id
   const findColumnByCardId = (cardId) => {

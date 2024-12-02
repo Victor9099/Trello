@@ -42,7 +42,8 @@ function CardTrello({ cardT }) {
       sx={{
         cursor: 'pointer',
         boxShadow: '0 1px 1 px rgba(0, 0, 0, 0.2)',
-        overflow: 'unset'
+        overflow: 'unset',
+        display: cardT?.FE_PlaceholderCard ? 'none' : 'block'
       }}
     >
       {cardT?.cover && <CardMedia sx={{ height: 140 }} image={cardT?.cover} />}
