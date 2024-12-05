@@ -43,7 +43,11 @@ function CardTrello({ cardT }) {
         cursor: 'pointer',
         boxShadow: '0 1px 1 px rgba(0, 0, 0, 0.2)',
         overflow: 'unset',
-        display: cardT?.FE_PlaceholderCard ? 'none' : 'block'
+        display: cardT?.FE_PlaceholderCard ? 'none' : 'block',
+        border: '1px solid transparent',
+        '&:hover': { borderColor: (theme) => 
+          theme.palette.primary.main
+        }
       }}
     >
       {cardT?.cover && <CardMedia sx={{ height: 140 }} image={cardT?.cover} />}

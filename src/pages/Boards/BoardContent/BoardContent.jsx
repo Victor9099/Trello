@@ -5,8 +5,8 @@ import {
   DndContext,
   useSensor,
   useSensors,
-  MouseSensor,
-  TouchSensor,
+  // MouseSensor,
+  // TouchSensor,
   PointerSensor,
   DragOverlay,
   defaultDropAnimationSideEffects,
@@ -22,13 +22,21 @@ import Column from './ListColumn.jsx/Column/Column'
 import CardTrello from './ListColumn.jsx/Column/ListCards/Card/CardTrello'
 import { cloneDeep, filter, isEmpty, over } from 'lodash'
 import { generatePlaceholderCard } from '~/ulti/formatter'
+import { MouseSensor, TouchSensor } from '~/customLibraries/DndKitSensors'
 const ACTIVE_DRAG_ITEM_TYPE = {
   COLUMN: 'ACTIVE_DRAG_ITEM_TYPE_COLUMN',
   CARD: 'ACTIVE_DRAG_ITEM_TYPE_CARD'
 }
 // Cap nhat state trong luc di chuyen card
 
-function BoardContent({ board }) {
+function BoardContent({
+  board,
+  createNewColumn,
+  createNewCard,
+  moveColumns,
+  moveCardInTheSameColumn,
+  moveCardToDifferentColumn
+}) {
   // Cam bien
   const pointerSensor = useSensor(PointerSensor, {
     activationConstraint: { distance: 10 }
@@ -58,7 +66,8 @@ function BoardContent({ board }) {
     over,
     activeColumn,
     activeDraggingCardId,
-    activeDraggingCardData
+    activeDraggingCardData,
+    triggerFrom
   ) => {
     setOrderedColumnsState((prevColumns) => {
       //Tim vi tri overCard sap duoc active CArd tha
@@ -114,20 +123,25 @@ function BoardContent({ board }) {
           rebuild_activeDraggingCardData
         )
         //xoa placeholdercard neu no dang ton tai
-        nextOverColumn.cards = nextOverColumn.cards.filter(card => !card.FE_PlaceholderCard)
+        nextOverColumn.cards = nextOverColumn.cards.filter(
+          (card) => !card.FE_PlaceholderCard
+        )
         // cap nhat
         nextOverColumn.cardOrderIds = nextOverColumn.cards.map(
           (card) => card._id
         )
       }
-
+      if (triggerFrom === 'handleDragEnd') {
+        moveCardToDifferentColumn(activeDraggingCardId, oldColumnWhenDraggingCard._id, 
+          nextOverColumn._id, nextColumns
+        )
+      }
+      
       return nextColumns
     })
   }
   useEffect(() => {
-    setOrderedColumnsState(
-      MapOrder(board?.columns, board?.columnOrderIds, '_id')
-    )
+    setOrderedColumnsState(board.columns)
   }, [board])
   const handleDragStart = (event) => {
     setActiveDragItemId(event?.active?.id)
@@ -168,7 +182,8 @@ function BoardContent({ board }) {
           over,
           activeColumn,
           activeDraggingCardId,
-          activeDraggingCardData
+          activeDraggingCardData,
+          'handleDragEnd'
         )
       } else {
         const oldCardIndex = oldColumnWhenDraggingCard?.cards?.findIndex(
@@ -183,15 +198,21 @@ function BoardContent({ board }) {
           oldCardIndex,
           newCardIndex
         ) //Dung array Move tuong tu keo column tron board
+        const dndOrderedCardIds = dndOrderedCards.map((c) => c._id)
         setOrderedColumnsState((prevColumns) => {
           const nextColumns = cloneDeep(prevColumns)
           const targetColumn = nextColumns.find(
             (c) => c._id === overColumn._id
           )
           targetColumn.cards = dndOrderedCards
-          targetColumn.cardOrderIds = dndOrderedCards.map((c) => c._id)
+          targetColumn.cardOrderIds = dndOrderedCardIds
           return nextColumns
         })
+        moveCardInTheSameColumn(
+          dndOrderedCards,
+          dndOrderedCardIds,
+          oldColumnWhenDraggingCard._id
+        )
       }
     }
     if (activeDragItemType === ACTIVE_DRAG_ITEM_TYPE.COLUMN) {
@@ -209,10 +230,13 @@ function BoardContent({ board }) {
           oldColumnIndex,
           newColumnIndex
         )
+        //Tranh delay bi flickering giao dien khi goi api
         //Dung thu vien de sap xep
         // Dung luu tru vao Database
         // const dndOrderedColumnsIds = dndOrderedColumns.map(c => c._id)
         setOrderedColumnsState(dndOrderedColumns)
+
+        moveColumns(dndOrderedColumns)
       }
     }
     // neu vi tri sau khi keo tha khac voi ban dau
@@ -233,36 +257,45 @@ function BoardContent({ board }) {
     })
   }
   //Xu ly thuat toan va cham
-  const collisionDetectionStrategy = useCallback((args) => {
-    if (activeDragItemType === ACTIVE_DRAG_ITEM_TYPE.COLUMN) {
-      return closestCorners({ ...args })
-    }
-
-    //Tim diem giao nhau giua cac diem voi con tro
-    const pointerIntersection = pointerWithin(args)
-    if (!pointerIntersection?.length) return
-    // thuat toan phat hien va cham
-    // const intersections = pointerIntersection.length > 0 ?
-    //   pointerIntersection : rectIntersection (args)
-
-    //Tim overId dau tien trong sections dau tien
-    let overId = getFirstCollision(pointerIntersection, 'id')
-    if (overId) {
-      const checkColumn = orderedColumnsState.find(column => column._id === overId)
-      if (checkColumn) {
-        overId = closestCenter({
-          ...args,
-          droppableContainers: args.droppableContainers.filter(
-            container => {return (container.id !== overId) &&
-              (checkColumn?.cardOrderIds?.includes(container.id))}
-          )
-        })[0]?.id
+  const collisionDetectionStrategy = useCallback(
+    (args) => {
+      if (activeDragItemType === ACTIVE_DRAG_ITEM_TYPE.COLUMN) {
+        return closestCorners({ ...args })
       }
-      lastOverId.current = overId
-      return [{ id: overId }]
-    }
-    return lastOverId.current ? [{ id: lastOverId.current }] : []
-  }, [activeDragItemType, orderedColumnsState])
+
+      //Tim diem giao nhau giua cac diem voi con tro
+      const pointerIntersection = pointerWithin(args)
+      if (!pointerIntersection?.length) return
+      // thuat toan phat hien va cham
+      // const intersections = pointerIntersection.length > 0 ?
+      //   pointerIntersection : rectIntersection (args)
+
+      //Tim overId dau tien trong sections dau tien
+      let overId = getFirstCollision(pointerIntersection, 'id')
+      if (overId) {
+        const checkColumn = orderedColumnsState.find(
+          (column) => column._id === overId
+        )
+        if (checkColumn) {
+          overId = closestCenter({
+            ...args,
+            droppableContainers: args.droppableContainers.filter(
+              (container) => {
+                return (
+                  container.id !== overId &&
+                  checkColumn?.cardOrderIds?.includes(container.id)
+                )
+              }
+            )
+          })[0]?.id
+        }
+        lastOverId.current = overId
+        return [{ id: overId }]
+      }
+      return lastOverId.current ? [{ id: lastOverId.current }] : []
+    },
+    [activeDragItemType, orderedColumnsState]
+  )
   //Tim 1 column theo card Id
   const findColumnByCardId = (cardId) => {
     return orderedColumnsState.find((column) =>
@@ -295,7 +328,8 @@ function BoardContent({ board }) {
         over,
         activeColumn,
         activeDraggingCardId,
-        activeDraggingCardData
+        activeDraggingCardData,
+        'handleDragOver'
       )
     }
   }
@@ -320,7 +354,11 @@ function BoardContent({ board }) {
           p: '10px 0'
         }}
       >
-        <ListColumns columns={orderedColumnsState} />
+        <ListColumns
+          columns={orderedColumnsState}
+          createNewColumn={createNewColumn}
+          createNewCard={createNewCard}
+        />
         <DragOverlay dropAnimation={CustomDropAnimation}>
           {!activeDragItemType && null}
           {activeDragItemType === ACTIVE_DRAG_ITEM_TYPE.COLUMN && (

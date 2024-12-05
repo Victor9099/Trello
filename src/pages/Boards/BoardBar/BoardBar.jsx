@@ -8,7 +8,7 @@ import FilterListIcon from '@mui/icons-material/FilterList'
 import Avatar from '@mui/material/Avatar'
 import AvatarGroup from '@mui/material/AvatarGroup'
 import PersonAddIcon from '@mui/icons-material/PersonAdd'
-import capitalizeFirstLetter from '~/ulti/formatter'
+import { capitalizeFirstLetter } from '~/ulti/formatter'
 const MenuStyle = {
   color: 'white',
   backgroundColor: 'transparent',
@@ -41,12 +41,14 @@ function BoardBar(props) {
       }}
     >
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-        <Chip
-          sx={MenuStyle}
-          icon={<DashboardIcon />}
-          label= {board?.title}
-          clickable
-        />
+        <Tooltip title={board?.description}>
+          <Chip
+            sx={MenuStyle}
+            icon={<DashboardIcon />}
+            label= {board?.title}
+            clickable
+          />
+        </Tooltip>
         <Chip
           sx={MenuStyle}
           icon={<VpnLockIcon />}
